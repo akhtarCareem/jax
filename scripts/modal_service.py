@@ -19,16 +19,23 @@ image = (
 app = modal.App("jax-server-example")
 
 
-@app.function(
+@app.cls(
     image=image,
     secrets=[modal.Secret.from_name("huggingface-token", required_keys=["HF_TOKEN"])],
     enable_memory_snapshot=True,
     max_containers=3,
-    scaledown_window=1 * MINUTE,
-    timeout=100 * SECOND,
+    scaledown_window=5 * MINUTE,
+    timeout=10 * MINUTE,
+    startup_timeout=10 * MINUTE,
 )
-@modal.asgi_app(label="jax-server-example")
-def fastapi_app():
-    from jax_server.server.app import create_app
+class JaxServer:
+    @modal.enter(snap=True)
+    def setup(self):
+        from jax_server.server.app import create_app, initialize_app_state
 
-    return create_app("/root/configs/hf-example.yaml")
+        self.web_app = create_app("/root/configs/hf-example.yaml", startup_enabled=False)
+        initialize_app_state(self.web_app)
+
+    @modal.asgi_app(label="jax-server-example")
+    def fastapi_app(self):
+        return self.web_app

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -49,6 +50,14 @@ async def _load_models(app_state: AppState) -> None:
                 orjson.dumps(to_jsonable(prediction["outputs"]))
         app_state.registry.add(model)
     app_state.ready = True
+
+
+async def load_app_state(app: FastAPI) -> None:
+    await _load_models(app.state.jax_server)
+
+
+def initialize_app_state(app: FastAPI) -> None:
+    asyncio.run(load_app_state(app))
 
 
 def create_app(

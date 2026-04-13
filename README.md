@@ -68,6 +68,8 @@ The example Modal service uses [configs/hf-example.yaml](/Users/dmitry/git/githu
 
 The image in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/jax-server/scripts/modal_service.py) installs `jax-server` from the GitHub `main` branch using Modal's `uv_pip_install`, rather than copying the local source tree into the container. Because the dependency is installed from a Git URL, the image also installs `git` with `apt_install("git")`.
 
+For better cold-start performance, the Modal example is implemented as a `modal.Cls`. It creates the FastAPI app and loads the Hugging Face-backed model inside `@modal.enter(snap=True)`, so that model initialization work is included in the memory snapshot instead of being repeated on every cold container start.
+
 If you point the service at a private Hugging Face repo, create a Modal secret that contains `HF_TOKEN` and attach it to the function in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/jax-server/scripts/modal_service.py).
 
 Send a request using plain JSON inputs:
