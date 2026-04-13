@@ -28,6 +28,9 @@ dev = [
   "httpx>=0.28.0",
   "pytest>=8.3.0",
 ]
+modal = [
+  "modal>=1.1.0",
+]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

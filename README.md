@@ -36,6 +36,40 @@ Start the server with the Hugging Face example config:
 JAX_SERVER_CONFIG=configs/hf-example.yaml uv run uvicorn jax_server.deploy.k8s_main:app --host 0.0.0.0 --port 8000
 ```
 
+## Modal example
+
+Run the Hugging Face-backed example on Modal as an ASGI app.
+
+Install local dependencies and the Modal CLI:
+
+```bash
+uv sync --extra jax --extra modal
+```
+
+Authenticate with Modal if needed:
+
+```bash
+modal setup
+```
+
+Start a live development deployment:
+
+```bash
+modal serve scripts/modal_service.py
+```
+
+Deploy a persistent app:
+
+```bash
+modal deploy scripts/modal_service.py
+```
+
+The example Modal service uses [configs/hf-example.yaml](/Users/dmitry/git/github.com/dmitryBe/jax-server/configs/hf-example.yaml), so the model artifacts come from Hugging Face instead of local files.
+
+The image in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/jax-server/scripts/modal_service.py) installs `jax-server` from the GitHub `main` branch using Modal's `uv_pip_install`, rather than copying the local source tree into the container. Because the dependency is installed from a Git URL, the image also installs `git` with `apt_install("git")`.
+
+If you point the service at a private Hugging Face repo, create a Modal secret that contains `HF_TOKEN` and attach it to the function in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/jax-server/scripts/modal_service.py).
+
 Send a request using plain JSON inputs:
 
 ```bash
