@@ -72,6 +72,8 @@ The image in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/ja
 
 For better cold-start performance, the Modal example is implemented as a `modal.Cls`. It creates the FastAPI app and loads the Hugging Face-backed model inside `@modal.enter(snap=True)`, so that model initialization work is included in the memory snapshot instead of being repeated on every cold container start.
 
+The Modal example also mounts a persistent Volume at `/persist_vol` and sets `HF_HOME=/persist_vol/.hf`, so the Hugging Face cache survives across container lifecycles. After the setup hook finishes loading the model, it commits the volume so later containers can reuse the downloaded artifacts instead of fetching them again.
+
 If you point the service at a private Hugging Face repo, create a Modal secret that contains `HF_TOKEN` and attach it to the function in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/jax-server/scripts/modal_service.py).
 
 Inference authentication is optional. If `JAX_SERVER_AUTH_TOKEN` is set in the environment, `POST /v1/models/{name}:predict` requires `Authorization: Bearer <token>`. For Modal, you can add `JAX_SERVER_AUTH_TOKEN` to the same secret that already carries `HF_TOKEN`; if the key is absent, inference stays open.

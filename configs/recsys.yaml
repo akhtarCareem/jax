@@ -17,4 +17,3 @@ models:
     params_format: orbax_standard
     artifact_name: candidate_tower
 
-cache_dir: .cache/jax-server

@@ -16,7 +16,7 @@ models:
 
     config = load_config(config_path)
 
-    assert config.cache_dir == ".cache/jax-server"
+    assert config.cache_dir is None
     assert config.models[0].artifact_prefix == "model"
 
 

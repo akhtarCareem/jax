@@ -24,9 +24,11 @@ def _artifact_patterns(model_config: ModelConfig) -> list[str]:
 
 
 class ArtifactStore:
-    def __init__(self, cache_dir: str | Path, local_files_only: bool = False) -> None:
-        self.cache_dir = Path(cache_dir).expanduser().resolve()
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, cache_dir: str | Path | None, local_files_only: bool = False) -> None:
+        self.cache_dir = None
+        if cache_dir is not None:
+            self.cache_dir = Path(cache_dir).expanduser().resolve()
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.local_files_only = local_files_only
 
     def fetch_snapshot(self, model_config: ModelConfig) -> Path:
@@ -42,13 +44,15 @@ class ArtifactStore:
                 )
             return local_path
 
-        snapshot_path = snapshot_download(
+        snapshot_kwargs = dict(
             repo_id=model_config.hf_repo,
             revision=model_config.revision,
-            cache_dir=str(self.cache_dir / "hf"),
             local_files_only=self.local_files_only,
             allow_patterns=_artifact_patterns(model_config),
         )
+        if self.cache_dir is not None:
+            snapshot_kwargs["cache_dir"] = str(self.cache_dir / "hf")
+        snapshot_path = snapshot_download(**snapshot_kwargs)
         return Path(snapshot_path)
 
 

@@ -9,5 +9,3 @@ models:
     max_batch_size: 8
     warmup_requests:
       - features: [[0.1, 0.2, 0.3, 0.4]]
-
-cache_dir: .cache/jax-server

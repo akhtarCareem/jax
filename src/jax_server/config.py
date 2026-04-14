@@ -39,13 +39,13 @@ class ModelConfig(BaseModel):
 
 class AppConfig(BaseModel):
     models: list[ModelConfig]
-    cache_dir: str = ".cache/jax-server"
+    cache_dir: str | None = None
     warmup_enabled: bool = True
     allow_local_files_only: bool = False
     auth_token_env: str | None = "JAX_SERVER_AUTH_TOKEN"
     max_request_bytes: int = 1_048_576
     max_input_elements: int = 100_000
-    max_input_depth: int = 32
+    max_input_depth: int = 8
     max_concurrent_requests_per_model: int = 8
 
 
@@ -54,7 +54,7 @@ def load_config(path: str | Path) -> AppConfig:
     data = yaml.safe_load(config_path.read_text()) or {}
     base_dir = config_path.parent.resolve()
 
-    if "cache_dir" in data:
+    if "cache_dir" in data and data["cache_dir"] is not None:
         data["cache_dir"] = str((base_dir / data["cache_dir"]).resolve())
 
     for model in data.get("models", []):

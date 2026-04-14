@@ -72,3 +72,30 @@ def test_hf_store_restricts_snapshot_patterns(tmp_path, monkeypatch):
             "params/**",
         ]
     )
+    assert "cache_dir" in calls
+
+
+def test_hf_store_uses_default_hf_cache_when_cache_dir_not_configured(tmp_path, monkeypatch):
+    calls = {}
+
+    def fake_snapshot_download(**kwargs):
+        calls.update(kwargs)
+        snapshot_dir = tmp_path / "snapshot"
+        snapshot_dir.mkdir()
+        return str(snapshot_dir)
+
+    monkeypatch.setattr("jax_server.hf.store.snapshot_download", fake_snapshot_download)
+
+    store = ArtifactStore(cache_dir=None)
+    config = ModelConfig(
+        name="hf-model",
+        source="hf",
+        hf_repo="org/repo",
+        params_path="params",
+        params_format="orbax_standard",
+        artifact_name="tower",
+    )
+
+    store.fetch_snapshot(config)
+
+    assert "cache_dir" not in calls

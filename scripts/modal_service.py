@@ -8,7 +8,7 @@ CONFIG_FILE = "configs/hf-example.yaml"
 SECOND = 1
 MINUTE = 60 * SECOND
 USE_MEMORY_SNAPSHOT = True
-JAX_SERVER_GIT_REF = "6b793291d89127eb7c92c86b02da8dd1c10aab83"
+JAX_SERVER_GIT_REF = "83498005d656163575a53bb0b0e590660dd991c7"
 
 image = (
     modal.Image.debian_slim()
@@ -17,15 +17,24 @@ image = (
         f"jax-server[jax] @ git+https://github.com/dmitryBe/jax-server.git@{JAX_SERVER_GIT_REF}"
     )
     .add_local_file(CONFIG_FILE, f"/root/{CONFIG_FILE}", copy=True)
-    .env({"JAX_SERVER_CONFIG": f"/root/{CONFIG_FILE}"})
+    .env(
+        {
+            "JAX_SERVER_CONFIG": f"/root/{CONFIG_FILE}",
+            "HF_HOME": "/persist_vol/.hf",
+        }
+    )
 )
 
-app = modal.App("jax-server-example")
+volume = modal.Volume.from_name("jax-server", create_if_missing=True)
 
-
-@app.cls(
+app = modal.App(
+    "jax-server-example",
     image=image,
     secrets=[modal.Secret.from_name("huggingface-token", required_keys=["HF_TOKEN"])],
+    volumes={"/persist_vol": volume},
+)
+
+@app.cls(
     enable_memory_snapshot=USE_MEMORY_SNAPSHOT,
     max_containers=3,
     scaledown_window=5 * MINUTE,
@@ -39,6 +48,7 @@ class JaxServer:
 
         self.web_app = create_app(f"/root/{CONFIG_FILE}", startup_enabled=False)
         asyncio.run(load_app_state(self.web_app))
+        volume.commit()
 
     @modal.asgi_app(label="jax-server-example")
     def fastapi_app(self):
