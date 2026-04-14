@@ -4,11 +4,11 @@ import asyncio
 
 import modal
 
-CONFIG_FILE = "configs/hf-example.yaml"
+JAX_SERVER_GIT_REF = "aa442704774b69e105c9497ce4ec294f5eab21a2"
 SECOND = 1
 MINUTE = 60 * SECOND
 USE_MEMORY_SNAPSHOT = True
-JAX_SERVER_GIT_REF = "b82268b818df49a9bf89b8d9fd3c80fa94737cf6"
+CONFIG_FILE = "configs/hf-example.yaml"
 PERSIST_ROOT = "/persist_vol"
 HF_HOME = f"{PERSIST_ROOT}/.hf"
 
@@ -36,6 +36,7 @@ app = modal.App(
     secrets=[modal.Secret.from_name("huggingface-token", required_keys=["HF_TOKEN"])],
     volumes={PERSIST_ROOT: volume},
 )
+
 
 @app.cls(
     enable_memory_snapshot=USE_MEMORY_SNAPSHOT,
