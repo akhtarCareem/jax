@@ -88,10 +88,6 @@ async def load_app_state(app: FastAPI) -> None:
     await load_registry(app.state.jax_server)
 
 
-def initialize_app_state(app: FastAPI) -> None:
-    asyncio.run(load_app_state(app))
-
-
 def _log_event(event: str, **fields: Any) -> None:
     logger.info(json.dumps({"event": event, **fields}, sort_keys=True, default=str))
 

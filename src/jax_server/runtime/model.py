@@ -28,7 +28,6 @@ class ServedModel:
         store: ArtifactStore,
         metrics: Metrics | None = None,
         shared_params_cache: dict[tuple[str, str, str], Any] | None = None,
-        allow_unsafe_param_formats: bool = False,
     ) -> None:
         started_at = time.perf_counter()
         snapshot_path = store.fetch_snapshot(self.config)
@@ -80,11 +79,10 @@ class ServedModel:
             return False
         return any(normalize_platform(device.platform) == "gpu" for device in jax.devices())
 
-    def _resolve_mode(self, inputs: Any, mode: str) -> str:
+    def _resolve_mode(self, mode: str, batch_size: int) -> str:
         if mode != "auto":
             return mode
 
-        batch_size = infer_batch_size(inputs)
         if batch_size > 1:
             if self.config.max_batch_size is None:
                 raise ClientInputError(
@@ -141,7 +139,7 @@ class ServedModel:
         except ValueError as exc:
             raise ClientInputError(str(exc)) from exc
 
-        resolved_mode = self._resolve_mode(converted_inputs, mode)
+        resolved_mode = self._resolve_mode(mode, batch_size)
         resolved_backend = self._resolve_backend(backend, resolved_mode, metrics)
         exported = self.exports[(resolved_backend, resolved_mode)]
 

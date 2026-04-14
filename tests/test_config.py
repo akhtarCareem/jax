@@ -59,5 +59,5 @@ models:
 
     assert config.max_request_bytes == 1_048_576
     assert config.max_input_elements == 100_000
-    assert config.max_input_depth == 32
+    assert config.max_input_depth == 8
     assert config.max_concurrent_requests_per_model == 8

@@ -54,6 +54,3 @@ class ArtifactStore:
             snapshot_kwargs["cache_dir"] = str(self.cache_dir / "hf")
         snapshot_path = snapshot_download(**snapshot_kwargs)
         return Path(snapshot_path)
-
-
-HFArtifactStore = ArtifactStore

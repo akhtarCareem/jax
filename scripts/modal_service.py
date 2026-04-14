@@ -8,10 +8,9 @@ CONFIG_FILE = "configs/hf-example.yaml"
 SECOND = 1
 MINUTE = 60 * SECOND
 USE_MEMORY_SNAPSHOT = True
-JAX_SERVER_GIT_REF = "a348ac3f4fde0f51f349f779d7aa9fded0c8d718"
+JAX_SERVER_GIT_REF = "b82268b818df49a9bf89b8d9fd3c80fa94737cf6"
 PERSIST_ROOT = "/persist_vol"
 HF_HOME = f"{PERSIST_ROOT}/.hf"
-JAX_COMPILATION_CACHE_DIR = f"{PERSIST_ROOT}/.jax_compilation_cache"
 
 
 image = (
@@ -25,7 +24,6 @@ image = (
         {
             "JAX_SERVER_CONFIG": f"/root/{CONFIG_FILE}",
             "HF_HOME": HF_HOME,
-            "JAX_COMPILATION_CACHE_DIR": JAX_COMPILATION_CACHE_DIR,
         }
     )
 )
