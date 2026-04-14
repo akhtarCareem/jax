@@ -8,7 +8,11 @@ CONFIG_FILE = "configs/hf-example.yaml"
 SECOND = 1
 MINUTE = 60 * SECOND
 USE_MEMORY_SNAPSHOT = True
-JAX_SERVER_GIT_REF = "83498005d656163575a53bb0b0e590660dd991c7"
+JAX_SERVER_GIT_REF = "a348ac3f4fde0f51f349f779d7aa9fded0c8d718"
+PERSIST_ROOT = "/persist_vol"
+HF_HOME = f"{PERSIST_ROOT}/.hf"
+JAX_COMPILATION_CACHE_DIR = f"{PERSIST_ROOT}/.jax_compilation_cache"
+
 
 image = (
     modal.Image.debian_slim()
@@ -20,7 +24,8 @@ image = (
     .env(
         {
             "JAX_SERVER_CONFIG": f"/root/{CONFIG_FILE}",
-            "HF_HOME": "/persist_vol/.hf",
+            "HF_HOME": HF_HOME,
+            "JAX_COMPILATION_CACHE_DIR": JAX_COMPILATION_CACHE_DIR,
         }
     )
 )
@@ -31,13 +36,13 @@ app = modal.App(
     "jax-server-example",
     image=image,
     secrets=[modal.Secret.from_name("huggingface-token", required_keys=["HF_TOKEN"])],
-    volumes={"/persist_vol": volume},
+    volumes={PERSIST_ROOT: volume},
 )
 
 @app.cls(
     enable_memory_snapshot=USE_MEMORY_SNAPSHOT,
     max_containers=3,
-    scaledown_window=5 * MINUTE,
+    scaledown_window=3 * MINUTE,
     timeout=10 * MINUTE,
     startup_timeout=10 * MINUTE,
 )
