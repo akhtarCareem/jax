@@ -8,12 +8,13 @@ CONFIG_FILE = "configs/hf-example.yaml"
 SECOND = 1
 MINUTE = 60 * SECOND
 USE_MEMORY_SNAPSHOT = True
+JAX_SERVER_GIT_REF = "6b793291d89127eb7c92c86b02da8dd1c10aab83"
 
 image = (
     modal.Image.debian_slim()
     .apt_install("git")
     .uv_pip_install(
-        "jax-server[jax] @ git+https://github.com/dmitryBe/jax-server.git@main"
+        f"jax-server[jax] @ git+https://github.com/dmitryBe/jax-server.git@{JAX_SERVER_GIT_REF}"
     )
     .add_local_file(CONFIG_FILE, f"/root/{CONFIG_FILE}", copy=True)
     .env({"JAX_SERVER_CONFIG": f"/root/{CONFIG_FILE}"})
@@ -34,10 +35,10 @@ app = modal.App("jax-server-example")
 class JaxServer:
     @modal.enter(snap=USE_MEMORY_SNAPSHOT)
     def setup(self):
-        from jax_server.server.app import _load_models, create_app
+        from jax_server.server.app import create_app, load_app_state
 
-        self.web_app = create_app("/root/configs/hf-example.yaml", startup_enabled=False)
-        asyncio.run(_load_models(self.web_app.state.jax_server))
+        self.web_app = create_app(f"/root/{CONFIG_FILE}", startup_enabled=False)
+        asyncio.run(load_app_state(self.web_app))
 
     @modal.asgi_app(label="jax-server-example")
     def fastapi_app(self):

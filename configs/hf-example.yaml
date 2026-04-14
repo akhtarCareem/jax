@@ -6,7 +6,6 @@ models:
     params_format: orbax_standard
     artifact_name: feature_encoder
     default_platform: cpu
-    batching_enabled: true
     max_batch_size: 8
     warmup_requests:
       - features: [[0.1, 0.2, 0.3, 0.4]]

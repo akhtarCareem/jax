@@ -8,6 +8,21 @@ from jax_server.config import ModelConfig
 from jax_server.exceptions import ModelLoadError
 
 
+def _artifact_patterns(model_config: ModelConfig) -> list[str]:
+    artifact_prefix = model_config.artifact_prefix
+    params_path = model_config.params_path.rstrip("/")
+    patterns = [
+        f"{artifact_prefix}_cpu.bin",
+        f"{artifact_prefix}_cpu_batch.bin",
+        f"{artifact_prefix}_gpu.bin",
+        f"{artifact_prefix}_gpu_batch.bin",
+        model_config.params_path,
+    ]
+    if params_path:
+        patterns.extend([f"{params_path}/*", f"{params_path}/**"])
+    return patterns
+
+
 class ArtifactStore:
     def __init__(self, cache_dir: str | Path, local_files_only: bool = False) -> None:
         self.cache_dir = Path(cache_dir).expanduser().resolve()
@@ -32,6 +47,7 @@ class ArtifactStore:
             revision=model_config.revision,
             cache_dir=str(self.cache_dir / "hf"),
             local_files_only=self.local_files_only,
+            allow_patterns=_artifact_patterns(model_config),
         )
         return Path(snapshot_path)
 

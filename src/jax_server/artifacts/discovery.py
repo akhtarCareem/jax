@@ -7,6 +7,9 @@ from jax_server.exceptions import ArtifactNotFoundError
 Platform = str
 Mode = str
 
+PLATFORMS = ("cpu", "gpu")
+MODES = ("single", "batch")
+
 
 def artifact_filename(prefix: str, platform: Platform, mode: Mode) -> str:
     suffix = f"_{platform}"
@@ -17,8 +20,8 @@ def artifact_filename(prefix: str, platform: Platform, mode: Mode) -> str:
 
 def discover_artifacts(root: Path, artifact_prefix: str) -> dict[tuple[Platform, Mode], Path]:
     found: dict[tuple[Platform, Mode], Path] = {}
-    for platform in ("cpu", "gpu"):
-        for mode in ("single", "batch"):
+    for platform in PLATFORMS:
+        for mode in MODES:
             path = root / artifact_filename(artifact_prefix, platform, mode)
             if path.exists():
                 found[(platform, mode)] = path

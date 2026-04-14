@@ -7,7 +7,7 @@ from typing import Any
 from jax_server.artifacts.discovery import discover_artifacts
 from jax_server.config import ModelConfig
 from jax_server.env import normalize_platform
-from jax_server.exceptions import ModelLoadError, PredictionError
+from jax_server.exceptions import ClientInputError, ExecutionError, ModelLoadError
 from jax_server.hf.store import ArtifactStore
 from jax_server.inference.convert import infer_batch_size, to_jax_pytree
 from jax_server.metrics import Metrics
@@ -28,6 +28,7 @@ class ServedModel:
         store: ArtifactStore,
         metrics: Metrics | None = None,
         shared_params_cache: dict[tuple[str, str, str], Any] | None = None,
+        allow_unsafe_param_formats: bool = False,
     ) -> None:
         started_at = time.perf_counter()
         snapshot_path = store.fetch_snapshot(self.config)
@@ -61,7 +62,6 @@ class ServedModel:
             "local_path": self.config.local_path,
             "artifact_name": self.config.artifact_prefix,
             "default_platform": self.config.default_platform,
-            "batching_enabled": self.config.batching_enabled,
             "max_batch_size": self.config.max_batch_size,
             "available_exports": [
                 {"backend": backend, "mode": mode}
@@ -86,13 +86,13 @@ class ServedModel:
 
         batch_size = infer_batch_size(inputs)
         if batch_size > 1:
-            if not self.config.batching_enabled:
-                raise PredictionError(
+            if self.config.max_batch_size is None:
+                raise ClientInputError(
                     f"Model '{self.config.name}' received batch size {batch_size}, "
                     "but batching is disabled."
                 )
             if batch_size > self.config.max_batch_size:
-                raise PredictionError(
+                raise ClientInputError(
                     f"Model '{self.config.name}' received batch size {batch_size}, "
                     f"which exceeds max_batch_size={self.config.max_batch_size}."
                 )
@@ -103,7 +103,7 @@ class ServedModel:
         available = self._available_backends()
         if backend in {"cpu", "gpu"}:
             if (backend, mode) not in self.exports:
-                raise PredictionError(
+                raise ClientInputError(
                     f"Model '{self.config.name}' has no {backend}/{mode} export."
                 )
             return backend
@@ -121,7 +121,7 @@ class ServedModel:
             return "cpu"
         if self.config.default_platform in available and (self.config.default_platform, mode) in self.exports:
             return self.config.default_platform
-        raise PredictionError(
+        raise ClientInputError(
             f"Model '{self.config.name}' has no compatible export for mode '{mode}'."
         )
 
@@ -136,11 +136,15 @@ class ServedModel:
             raise ModelLoadError(f"Model '{self.config.name}' is not loaded.")
 
         converted_inputs = to_jax_pytree(inputs)
+        try:
+            batch_size = infer_batch_size(converted_inputs)
+        except ValueError as exc:
+            raise ClientInputError(str(exc)) from exc
+
         resolved_mode = self._resolve_mode(converted_inputs, mode)
         resolved_backend = self._resolve_backend(backend, resolved_mode, metrics)
         exported = self.exports[(resolved_backend, resolved_mode)]
 
-        batch_size = infer_batch_size(converted_inputs)
         timer = None
         if metrics is not None:
             metrics.batch_size.labels(model=self.config.name).observe(batch_size)
@@ -156,7 +160,7 @@ class ServedModel:
         except Exception as exc:
             if metrics is not None:
                 metrics.request_errors.labels(model=self.config.name).inc()
-            raise PredictionError(
+            raise ExecutionError(
                 f"Prediction failed for model '{self.config.name}'."
             ) from exc
         finally:

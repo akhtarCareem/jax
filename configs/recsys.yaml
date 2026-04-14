@@ -6,7 +6,6 @@ models:
     params_format: orbax_standard
     artifact_name: user_tower
     default_platform: gpu
-    batching_enabled: true
     max_batch_size: 128
     warmup_requests:
       - user_id: [1]

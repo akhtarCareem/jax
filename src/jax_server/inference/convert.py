@@ -63,9 +63,11 @@ def infer_batch_size(value: Any) -> int:
     except ImportError:
         leaves = [value]
 
-    sizes: list[int] = []
+    sizes: set[int] = set()
     for leaf in leaves:
         shape = getattr(leaf, "shape", None)
-        if shape:
-            sizes.append(int(shape[0]))
-    return max(sizes, default=1)
+        if shape and len(shape) > 0:
+            sizes.add(int(shape[0]))
+    if len(sizes) > 1:
+        raise ValueError(f"Inconsistent batch sizes across pytree leaves: {sorted(sizes)}")
+    return next(iter(sizes), 1)

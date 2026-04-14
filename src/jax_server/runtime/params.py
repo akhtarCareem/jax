@@ -1,18 +1,13 @@
 from __future__ import annotations
 
-import pickle
 from pathlib import Path
 from typing import Any, Literal
 
-
-ParamsFormat = Literal["orbax_standard", "pickle", "msgpack"]
+ParamsFormat = Literal["orbax_standard", "msgpack"]
 
 
 def load_params(path: str | Path, params_format: ParamsFormat) -> Any:
     params_path = Path(path)
-    if params_format == "pickle":
-        with params_path.open("rb") as handle:
-            return pickle.load(handle)
     if params_format == "msgpack":
         try:
             import msgpack

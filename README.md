@@ -8,6 +8,8 @@ For end-to-end examples, use [configs/local-example.yaml](/Users/dmitry/git/gith
 
 When exporting a model for `jax-server`, keep the exported boundary runtime-generic: the exported function should accept plain JAX pytrees made of dicts, lists, tuples, and arrays, and any model-specific wrapping such as `NamedTuple` reconstruction should happen inside the export wrapper. That lets the server accept ordinary JSON without importing custom application types. In practice, export one fixed-shape artifact for single-request latency and a separate batch artifact with a symbolic batch dimension, for example `b, = export.symbolic_shape("b,")`, so the same batch export can serve multiple batch sizes.
 
+The runtime now includes basic production guardrails by default: only `orbax_standard` and `msgpack` param formats are supported, request bodies are capped by size, nested input structures are bounded by depth and total scalar elements, each model has a per-model concurrency limit to avoid unbounded in-flight inference, and batching is controlled only by `max_batch_size` (`null` disables batching).
+
 ## Local example
 
 Export the example model:
@@ -71,6 +73,10 @@ The image in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/ja
 For better cold-start performance, the Modal example is implemented as a `modal.Cls`. It creates the FastAPI app and loads the Hugging Face-backed model inside `@modal.enter(snap=True)`, so that model initialization work is included in the memory snapshot instead of being repeated on every cold container start.
 
 If you point the service at a private Hugging Face repo, create a Modal secret that contains `HF_TOKEN` and attach it to the function in [scripts/modal_service.py](/Users/dmitry/git/github.com/dmitryBe/jax-server/scripts/modal_service.py).
+
+Inference authentication is optional. If `JAX_SERVER_AUTH_TOKEN` is set in the environment, `POST /v1/models/{name}:predict` requires `Authorization: Bearer <token>`. For Modal, you can add `JAX_SERVER_AUTH_TOKEN` to the same secret that already carries `HF_TOKEN`; if the key is absent, inference stays open.
+
+The server also emits structured JSON log lines for model loading and inference requests, including a request ID, model name, and resolved backend/mode. Each HTTP response includes an `X-Request-ID` header; if the caller supplies one, it is preserved.
 
 Send a request using plain JSON inputs:
 
