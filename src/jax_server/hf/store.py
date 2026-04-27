@@ -11,11 +11,13 @@ from jax_server.exceptions import ModelLoadError
 def _artifact_patterns(model_config: ModelConfig) -> list[str]:
     artifact_prefix = model_config.artifact_prefix
     params_path = model_config.params_path.rstrip("/")
+    prefix = f"{model_config.artifact_dir}/" if model_config.artifact_dir else ""
+
     patterns = [
-        f"{artifact_prefix}_cpu.bin",
-        f"{artifact_prefix}_cpu_batch.bin",
-        f"{artifact_prefix}_gpu.bin",
-        f"{artifact_prefix}_gpu_batch.bin",
+        f"{prefix}{artifact_prefix}_cpu.bin",
+        f"{prefix}{artifact_prefix}_cpu_batch.bin",
+        f"{prefix}{artifact_prefix}_gpu.bin",
+        f"{prefix}{artifact_prefix}_gpu_batch.bin",
         model_config.params_path,
     ]
     if params_path:

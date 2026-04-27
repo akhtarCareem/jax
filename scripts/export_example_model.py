@@ -117,9 +117,11 @@ def export_example_model(
     transformed = hk.without_apply_rng(hk.transform(build_forward_fn(hidden_size, output_size)))
     params = transformed.init(rng, sample_batch)
 
+    compiled_dir = output_dir / "compiled"
+    compiled_dir.mkdir(parents=True, exist_ok=True)
     save_params(params, output_dir)
-    export_variant(transformed, params, output_dir, artifact_name, mode="single")
-    export_variant(transformed, params, output_dir, artifact_name, mode="batch")
+    export_variant(transformed, params, compiled_dir, artifact_name, mode="single")
+    export_variant(transformed, params, compiled_dir, artifact_name, mode="batch")
 
     sample_inputs = {"features": np.asarray([[0.1, 0.2, 0.3, 0.4]], dtype=np.float32).tolist()}
     print(f"Exported example model to {output_dir}")

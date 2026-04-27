@@ -13,17 +13,15 @@ dependencies = [
   "pydantic>=2.8.0",
   "pyyaml>=6.0.2",
   "uvicorn>=0.32.0",
-]
-
-[dependency-groups]
-jax = [
   "dm-haiku>=0.0.13",
   "flatbuffers>=25.0.0",
   "flax>=0.10.0",
   "jax>=0.4.30",
-  "orbax-checkpoint>=0.11.0",
+  "orbax-checkpoint>=0.11.33",
   "msgpack>=1.1.0",
 ]
+
+[dependency-groups]
 dev = [
   "httpx>=0.28.0",
   "pytest>=8.3.0",
