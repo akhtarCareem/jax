@@ -17,6 +17,7 @@ class ModelConfig(BaseModel):
     params_path: str
     params_format: Literal["orbax_standard", "msgpack"]
     artifact_name: str | None = None
+    artifact_dir: str | None = None
     default_platform: Literal["cpu", "gpu"] = "cpu"
     max_batch_size: int | None = None
     warmup_requests: list[dict[str, Any]] = Field(default_factory=list)

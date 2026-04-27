@@ -42,6 +42,25 @@ cache_dir: .cache/test-cache
     assert config.cache_dir == str((tmp_path / ".cache/test-cache").resolve())
 
 
+def test_load_config_artifact_dir(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+models:
+  - name: sample
+    source: hf
+    hf_repo: org/repo
+    params_path: params/
+    params_format: msgpack
+    artifact_dir: compiled
+"""
+    )
+
+    config = load_config(config_path)
+
+    assert config.models[0].artifact_dir == "compiled"
+
+
 def test_load_config_defaults_prod_safety_flags(tmp_path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(

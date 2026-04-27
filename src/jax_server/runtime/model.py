@@ -40,7 +40,8 @@ class ServedModel:
             if shared_params_cache is not None:
                 shared_params_cache[cache_key] = self.params
 
-        artifacts = discover_artifacts(snapshot_path, self.config.artifact_prefix)
+        artifacts_root = snapshot_path / self.config.artifact_dir if self.config.artifact_dir else snapshot_path
+        artifacts = discover_artifacts(artifacts_root, self.config.artifact_prefix)
         self.exports = {
             key: ExportedFunction.from_file(path) for key, path in artifacts.items()
         }
