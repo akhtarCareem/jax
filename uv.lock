@@ -654,9 +654,15 @@ name = "jax-server"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "dm-haiku" },
     { name = "fastapi" },
+    { name = "flatbuffers" },
+    { name = "flax" },
     { name = "huggingface-hub" },
+    { name = "jax" },
+    { name = "msgpack" },
     { name = "numpy" },
+    { name = "orbax-checkpoint" },
     { name = "orjson" },
     { name = "prometheus-client" },
     { name = "pydantic" },
@@ -674,21 +680,19 @@ dev = [
     { name = "httpx" },
     { name = "pytest" },
 ]
-jax = [
-    { name = "dm-haiku" },
-    { name = "flatbuffers" },
-    { name = "flax" },
-    { name = "jax" },
-    { name = "msgpack" },
-    { name = "orbax-checkpoint" },
-]
 
 [package.metadata]
 requires-dist = [
+    { name = "dm-haiku", specifier = ">=0.0.13" },
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "flatbuffers", specifier = ">=25.0.0" },
+    { name = "flax", specifier = ">=0.10.0" },
     { name = "huggingface-hub", specifier = ">=0.30.0" },
+    { name = "jax", specifier = ">=0.4.30" },
     { name = "modal", marker = "extra == 'modal'", specifier = ">=1.1.0" },
+    { name = "msgpack", specifier = ">=1.1.0" },
     { name = "numpy", specifier = ">=1.26.0" },
+    { name = "orbax-checkpoint", specifier = ">=0.11.33" },
     { name = "orjson", specifier = ">=3.10.0" },
     { name = "prometheus-client", specifier = ">=0.21.0" },
     { name = "pydantic", specifier = ">=2.8.0" },
@@ -701,14 +705,6 @@ provides-extras = ["modal"]
 dev = [
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "pytest", specifier = ">=8.3.0" },
-]
-jax = [
-    { name = "dm-haiku", specifier = ">=0.0.13" },
-    { name = "flatbuffers", specifier = ">=25.0.0" },
-    { name = "flax", specifier = ">=0.10.0" },
-    { name = "jax", specifier = ">=0.4.30" },
-    { name = "msgpack", specifier = ">=1.1.0" },
-    { name = "orbax-checkpoint", specifier = ">=0.11.0" },
 ]
 
 [[package]]

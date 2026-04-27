@@ -80,19 +80,48 @@ Inference authentication is optional. If `JAX_SERVER_AUTH_TOKEN` is set in the e
 
 The server also emits structured JSON log lines for model loading and inference requests, including a request ID, model name, and resolved backend/mode. Each HTTP response includes an `X-Request-ID` header; if the caller supplies one, it is preserved.
 
-Send a request using plain JSON inputs:
+## Calling the API
+
+All inference goes through a single endpoint:
+
+```
+POST /v1/models/{name}:predict
+```
+
+The request body is JSON with three fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `inputs` | object | Input pytree — keys and shape must match the exported function signature |
+| `backend` | `"auto"` \| `"cpu"` \| `"gpu"` | Which device to run on; `"auto"` picks GPU if available, falls back to CPU |
+| `mode` | `"auto"` \| `"single"` \| `"batch"` | `"auto"` picks `"batch"` when the leading batch dimension is >1, otherwise `"single"` |
+
+Single request against the Modal deployment:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/v1/models/feature_encoder:predict \
+curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_encoder:predict \
   -H 'content-type: application/json' \
   -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4]]},"backend":"auto","mode":"auto"}'
 ```
 
-Send a batch request:
+Batch request (multiple rows in the leading axis):
 
 ```bash
-curl -X POST http://127.0.0.1:8000/v1/models/feature_encoder:predict \
+curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_encoder:predict \
   -H 'content-type: application/json' \
   -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4],[0.5,0.6,0.7,0.8],[0.9,1.0,1.1,1.2]]},"backend":"auto","mode":"auto"}'
 ```
+
+Against a local server replace the base URL with `http://127.0.0.1:8000`.
+
+If `JAX_SERVER_AUTH_TOKEN` is set, include the token on every request:
+
+```bash
+curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_encoder:predict \
+  -H 'content-type: application/json' \
+  -H 'authorization: Bearer <token>' \
+  -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4]]},"backend":"auto","mode":"auto"}'
+```
+
+Health and readiness probes are available at `/healthz` and `/readyz`.
 
