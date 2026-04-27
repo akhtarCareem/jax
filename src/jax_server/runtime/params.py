@@ -26,12 +26,11 @@ def load_params(path: str | Path, params_format: ParamsFormat) -> Any:
             import jax
         except ImportError as exc:
             raise RuntimeError("jax dependency is required for orbax_standard params.") from exc
-        checkpointer = ocp.StandardCheckpointer()
         devices = jax.local_devices()
+        fallback_sharding = jax.sharding.SingleDeviceSharding(devices[0]) if devices else None
+        checkpointer = ocp.Checkpointer(ocp.StandardCheckpointHandler())
         return checkpointer.restore(
             params_path,
-            args=ocp.args.StandardRestore(
-                fallback_sharding=jax.sharding.SingleDeviceSharding(devices[0])
-            ),
+            args=ocp.args.StandardRestore(fallback_sharding=fallback_sharding),
         )
     raise ValueError(f"Unsupported params format: {params_format}")
