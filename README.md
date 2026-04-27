@@ -95,3 +95,4 @@ curl -X POST http://127.0.0.1:8000/v1/models/feature_encoder:predict \
   -H 'content-type: application/json' \
   -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4],[0.5,0.6,0.7,0.8],[0.9,1.0,1.1,1.2]]},"backend":"auto","mode":"auto"}'
 ```
+
