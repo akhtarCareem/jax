@@ -29,7 +29,8 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     JAX_SERVER_CONFIG=/app/configs/gpu-example.yaml \
     HF_HOME=/cache/hf \
-    JAX_COMPILATION_CACHE_DIR=/cache/jax
+    JAX_COMPILATION_CACHE_DIR=/cache/jax \
+    XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 RUN mkdir -p /cache && chown app:app /cache
 

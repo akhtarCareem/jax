@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,8 @@ from jax_server.exceptions import ClientInputError, ExecutionError, ModelLoadErr
 from jax_server.hf.store import ArtifactStore
 from jax_server.inference.convert import infer_batch_size, to_jax_pytree
 from jax_server.metrics import Metrics
+
+logger = logging.getLogger("jax_server.runtime")
 from jax_server.runtime.exported import ExportedFunction
 from jax_server.runtime.params import load_params
 
@@ -159,6 +162,10 @@ class ServedModel:
         except Exception as exc:
             if metrics is not None:
                 metrics.request_errors.labels(model=self.config.name).inc()
+            logger.exception(
+                "inference error model=%s backend=%s mode=%s",
+                self.config.name, resolved_backend, resolved_mode,
+            )
             raise ExecutionError(
                 f"Prediction failed for model '{self.config.name}'."
             ) from exc
