@@ -3,7 +3,7 @@ name = "jax-server"
 version = "0.1.0"
 description = "JAX model serving runtime for exported artifacts backed by Hugging Face storage."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115.0",
   "huggingface_hub>=0.30.0",
@@ -30,6 +30,9 @@ dev = [
 [project.optional-dependencies]
 modal = [
   "modal>=1.1.0",
+]
+cuda = [
+  "jax[cuda12]>=0.4.30",
 ]
 
 [build-system]

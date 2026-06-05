@@ -80,6 +80,36 @@ Inference authentication is optional. If `JAX_SERVER_AUTH_TOKEN` is set in the e
 
 The server also emits structured JSON log lines for model loading and inference requests, including a request ID, model name, and resolved backend/mode. Each HTTP response includes an `X-Request-ID` header; if the caller supplies one, it is preserved.
 
+## Deploying on Yoda (GPU)
+
+jax-server ships a multi-stage `Dockerfile` (Python 3.12, uv, `jax[cuda12]`)
+and a `serving.yoda/v1` Serving CR that plugs directly into Careem's Yoda
+platform via the r2-d2 operator. The container starts on port 8080 and pulls
+model artifacts from Hugging Face at boot.
+
+**Build and push** via the `careem/boba` repo: trigger the `deploy-image.yml`
+`workflow_dispatch` with `resource=jax-server`. This produces
+`boba/jax-server:<sha>` in ECR.
+
+**Deploy** by applying the manifests in `deploy/k8s/`:
+
+```bash
+# create the HF token secret
+kubectl create secret generic jax-server-secrets \
+  --from-literal=HF_TOKEN=hf_xxx \
+  -n <your-namespace>
+
+# validate (use --dry-run=client on prod)
+kubectl apply --dry-run=client -f deploy/k8s/serving.yaml
+
+# apply on non-prod
+kubectl apply -f deploy/k8s/serving.yaml
+```
+
+See [`deploy/k8s/README.md`](deploy/k8s/README.md) for the full build → push →
+apply flow, GPU node scheduling (`nodeSelector`/`tolerations`/`nvidia.com/gpu`),
+HF cache options, and GPU artifact requirements.
+
 ## Calling the API
 
 All inference goes through a single endpoint:
