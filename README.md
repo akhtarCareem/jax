@@ -99,7 +99,7 @@ The request body is JSON with three fields:
 Single request against the Modal deployment:
 
 ```bash
-curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_encoder:predict \
+curl -X POST https://dmitry--jax-server-example.modal.run/v1/models/feature_encoder:predict \
   -H 'content-type: application/json' \
   -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4]]},"backend":"auto","mode":"auto"}'
 ```
@@ -107,7 +107,7 @@ curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_enco
 Batch request (multiple rows in the leading axis):
 
 ```bash
-curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_encoder:predict \
+curl -X POST https://dmitry--jax-server-example.modal.run/v1/models/feature_encoder:predict \
   -H 'content-type: application/json' \
   -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4],[0.5,0.6,0.7,0.8],[0.9,1.0,1.1,1.2]]},"backend":"auto","mode":"auto"}'
 ```
@@ -117,7 +117,7 @@ Against a local server replace the base URL with `http://127.0.0.1:8000`.
 If `JAX_SERVER_AUTH_TOKEN` is set, include the token on every request:
 
 ```bash
-curl -X POST https://careem--jax-server-example.modal.run/v1/models/feature_encoder:predict \
+curl -X POST https://dmitry--jax-server-example.modal.run/v1/models/feature_encoder:predict \
   -H 'content-type: application/json' \
   -H 'authorization: Bearer <token>' \
   -d '{"inputs":{"features":[[0.1,0.2,0.3,0.4]]},"backend":"auto","mode":"auto"}'
