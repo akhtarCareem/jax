@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import orjson
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi import FastAPI, Header, HTTPException, Request
 
@@ -24,7 +24,6 @@ from jax_server.metrics import Metrics
 from jax_server.runtime.model import ServedModel
 from jax_server.runtime.registry import ModelRegistry
 from jax_server.server.admission import AdmissionGate
-from jax_server.server.schemas import PredictRequest, PredictResponse
 
 logger = logging.getLogger("jax_server.server")
 
@@ -66,7 +65,7 @@ async def load_registry(app_state: AppState) -> None:
         if app_state.config.warmup_enabled:
             for warmup_request in model_config.warmup_requests:
                 prediction = model.predict(warmup_request, metrics=None)
-                orjson.dumps(prediction["outputs"])
+                orjson.dumps(prediction["outputs"], option=orjson.OPT_SERIALIZE_NUMPY)
         app_state.registry.add(model)
         app_state.request_gates[model_config.name] = AdmissionGate(
             app_state.config.max_concurrent_requests_per_model
@@ -184,15 +183,30 @@ def create_app(
             raise HTTPException(status_code=404, detail=f"unknown model: {name}") from exc
         return model.describe()
 
-    @app.post("/v1/models/{name}:predict", response_model=PredictResponse)
+    @app.post("/v1/models/{name}:predict")
     async def predict(
         request_http: Request,
         name: str,
-        request: PredictRequest,
         authorization: str | None = Header(default=None),
-    ) -> dict[str, Any]:
+    ) -> Response:
         request_id = request_http.state.request_id
         _authorize_inference(app, authorization)
+
+        body = await request_http.body()
+        try:
+            payload = orjson.loads(body)
+        except orjson.JSONDecodeError as exc:
+            raise HTTPException(status_code=400, detail="invalid JSON body") from exc
+        if not isinstance(payload, dict) or "inputs" not in payload:
+            raise HTTPException(status_code=400, detail="missing 'inputs' field")
+        inputs = payload["inputs"]
+        backend = payload.get("backend", "auto")
+        mode = payload.get("mode", "auto")
+        if backend not in ("auto", "cpu", "gpu"):
+            raise HTTPException(status_code=400, detail=f"invalid backend: {backend}")
+        if mode not in ("auto", "single", "batch"):
+            raise HTTPException(status_code=400, detail=f"invalid mode: {mode}")
+
         try:
             model = app.state.jax_server.registry.get(name)
         except KeyError as exc:
@@ -205,9 +219,9 @@ def create_app(
             async with gate.acquire():
                 result = await run_in_threadpool(
                     model.predict,
-                    request.inputs,
-                    request.backend,
-                    request.mode,
+                    inputs,
+                    backend,
+                    mode,
                     app.state.jax_server.metrics,
                 )
         except ClientInputError as exc:
@@ -215,8 +229,8 @@ def create_app(
                 "predict_rejected",
                 request_id=request_id,
                 model=name,
-                requested_backend=request.backend,
-                requested_mode=request.mode,
+                requested_backend=backend,
+                requested_mode=mode,
                 error=str(exc),
             )
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -228,23 +242,13 @@ def create_app(
                 error=str(exc),
             )
             raise HTTPException(status_code=503, detail=str(exc)) from exc
-        except ExecutionError as exc:
+        except (ExecutionError, JaxServerError) as exc:
             _log_event(
                 "predict_failed",
                 request_id=request_id,
                 model=name,
-                requested_backend=request.backend,
-                requested_mode=request.mode,
-                error=str(exc),
-            )
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
-        except JaxServerError as exc:
-            _log_event(
-                "predict_failed",
-                request_id=request_id,
-                model=name,
-                requested_backend=request.backend,
-                requested_mode=request.mode,
+                requested_backend=backend,
+                requested_mode=mode,
                 error=str(exc),
             )
             raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -258,6 +262,9 @@ def create_app(
             latency_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
 
-        return result
+        return Response(
+            content=orjson.dumps(result, option=orjson.OPT_SERIALIZE_NUMPY),
+            media_type="application/json",
+        )
 
     return app

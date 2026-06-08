@@ -38,4 +38,6 @@ EXPOSE 8080
 
 USER app
 
-CMD ["uvicorn", "jax_server.deploy.k8s_main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Single worker: one GPU per pod — extra workers would each init JAX on the same
+# device and contend for VRAM. uvloop + httptools cut event-loop and HTTP-parse overhead.
+CMD ["uvicorn", "jax_server.deploy.k8s_main:app", "--host", "0.0.0.0", "--port", "8080", "--loop", "uvloop", "--http", "httptools"]

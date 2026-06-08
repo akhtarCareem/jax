@@ -10,12 +10,21 @@ from jax_server.config import ModelConfig
 from jax_server.env import normalize_platform
 from jax_server.exceptions import ClientInputError, ExecutionError, ModelLoadError
 from jax_server.hf.store import ArtifactStore
-from jax_server.inference.convert import infer_batch_size, to_jax_pytree, to_jsonable
+from jax_server.inference.convert import infer_batch_size, to_jax_pytree, to_numpy_pytree
 from jax_server.metrics import Metrics
 
 logger = logging.getLogger("jax_server.runtime")
 from jax_server.runtime.exported import ExportedFunction
 from jax_server.runtime.params import load_params
+
+
+def _pin_params_to_gpu(params: Any) -> Any:
+    import jax
+
+    gpus = jax.devices("gpu") if any(d.platform == "gpu" for d in jax.devices()) else []
+    if not gpus:
+        return params
+    return jax.device_put(params, gpus[0])
 
 
 class ServedModel:
@@ -25,6 +34,7 @@ class ServedModel:
         self.exports: dict[tuple[str, str], ExportedFunction] = {}
         self.snapshot_path: Path | None = None
         self.loaded = False
+        self._metric_handles: dict[tuple[str, str], Any] = {}
 
     def load(
         self,
@@ -39,7 +49,7 @@ class ServedModel:
         if shared_params_cache is not None and cache_key in shared_params_cache:
             self.params = shared_params_cache[cache_key]
         else:
-            self.params = load_params(params_path, self.config.params_format)
+            self.params = _pin_params_to_gpu(load_params(params_path, self.config.params_format))
             if shared_params_cache is not None:
                 shared_params_cache[cache_key] = self.params
 
@@ -137,6 +147,7 @@ class ServedModel:
         if not self.loaded or self.params is None:
             raise ModelLoadError(f"Model '{self.config.name}' is not loaded.")
 
+        convert_start = time.perf_counter()
         converted_inputs = to_jax_pytree(inputs)
         try:
             batch_size = infer_batch_size(converted_inputs)
@@ -146,22 +157,14 @@ class ServedModel:
         resolved_mode = self._resolve_mode(mode, batch_size)
         resolved_backend = self._resolve_backend(backend, resolved_mode, metrics)
         exported = self.exports[(resolved_backend, resolved_mode)]
+        handles = self._metric_handles_for(metrics, resolved_backend, resolved_mode)
 
-        timer = None
-        if metrics is not None:
-            metrics.batch_size.labels(model=self.config.name).observe(batch_size)
-            timer = metrics.request_latency.labels(
-                model=self.config.name,
-                backend=resolved_backend,
-                mode=resolved_mode,
-            ).time()
-            timer.__enter__()
-
+        compute_start = time.perf_counter()
         try:
             outputs = exported.call(self.params, converted_inputs)
         except Exception as exc:
-            if metrics is not None:
-                metrics.request_errors.labels(model=self.config.name).inc()
+            if handles is not None:
+                handles["errors"].inc()
             logger.exception(
                 "inference error model=%s backend=%s mode=%s",
                 self.config.name, resolved_backend, resolved_mode,
@@ -169,20 +172,45 @@ class ServedModel:
             raise ExecutionError(
                 f"Prediction failed for model '{self.config.name}'."
             ) from exc
-        finally:
-            if timer is not None:
-                timer.__exit__(None, None, None)
 
-        if metrics is not None:
-            metrics.request_total.labels(
-                model=self.config.name,
-                backend=resolved_backend,
-                mode=resolved_mode,
-            ).inc()
+        serialize_start = time.perf_counter()
+        jsonable_outputs = to_numpy_pytree(outputs)
+        finished_at = time.perf_counter()
+
+        if handles is not None:
+            handles["batch_size"].observe(batch_size)
+            handles["latency"].observe(finished_at - compute_start)
+            handles["total"].inc()
+
+        logger.debug(
+            "predict timing model=%s convert_ms=%.3f compute_ms=%.3f serialize_ms=%.3f",
+            self.config.name,
+            (compute_start - convert_start) * 1000,
+            (serialize_start - compute_start) * 1000,
+            (finished_at - serialize_start) * 1000,
+        )
 
         return {
             "model": self.config.name,
             "backend": resolved_backend,
             "mode": resolved_mode,
-            "outputs": to_jsonable(outputs),
+            "outputs": jsonable_outputs,
         }
+
+    def _metric_handles_for(
+        self, metrics: Metrics | None, backend: str, mode: str
+    ) -> dict[str, Any] | None:
+        if metrics is None:
+            return None
+        key = (backend, mode)
+        handles = self._metric_handles.get(key)
+        if handles is None:
+            name = self.config.name
+            handles = {
+                "batch_size": metrics.batch_size.labels(model=name),
+                "latency": metrics.request_latency.labels(model=name, backend=backend, mode=mode),
+                "total": metrics.request_total.labels(model=name, backend=backend, mode=mode),
+                "errors": metrics.request_errors.labels(model=name),
+            }
+            self._metric_handles[key] = handles
+        return handles
