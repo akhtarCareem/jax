@@ -20,12 +20,10 @@ from jax_server.config import AppConfig, load_config
 from jax_server.env import configure_jax_environment
 from jax_server.exceptions import ClientInputError, ExecutionError, JaxServerError, ModelLoadError
 from jax_server.hf.store import ArtifactStore
-from jax_server.inference.convert import to_jsonable
 from jax_server.metrics import Metrics
 from jax_server.runtime.model import ServedModel
 from jax_server.runtime.registry import ModelRegistry
 from jax_server.server.admission import AdmissionGate
-from jax_server.server.guards import validate_input_shape
 from jax_server.server.schemas import PredictRequest, PredictResponse
 
 logger = logging.getLogger("jax_server.server")
@@ -68,7 +66,7 @@ async def load_registry(app_state: AppState) -> None:
         if app_state.config.warmup_enabled:
             for warmup_request in model_config.warmup_requests:
                 prediction = model.predict(warmup_request, metrics=None)
-                orjson.dumps(to_jsonable(prediction["outputs"]))
+                orjson.dumps(prediction["outputs"])
         app_state.registry.add(model)
         app_state.request_gates[model_config.name] = AdmissionGate(
             app_state.config.max_concurrent_requests_per_model
@@ -195,11 +193,6 @@ def create_app(
     ) -> dict[str, Any]:
         request_id = request_http.state.request_id
         _authorize_inference(app, authorization)
-        validate_input_shape(
-            request.inputs,
-            max_elements=app.state.jax_server.config.max_input_elements,
-            max_depth=app.state.jax_server.config.max_input_depth,
-        )
         try:
             model = app.state.jax_server.registry.get(name)
         except KeyError as exc:
@@ -265,11 +258,6 @@ def create_app(
             latency_ms=round((time.perf_counter() - started_at) * 1000, 3),
         )
 
-        return {
-            "model": result["model"],
-            "backend": result["backend"],
-            "mode": result["mode"],
-            "outputs": to_jsonable(result["outputs"]),
-        }
+        return result
 
     return app

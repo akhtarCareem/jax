@@ -10,7 +10,7 @@ from jax_server.config import ModelConfig
 from jax_server.env import normalize_platform
 from jax_server.exceptions import ClientInputError, ExecutionError, ModelLoadError
 from jax_server.hf.store import ArtifactStore
-from jax_server.inference.convert import infer_batch_size, to_jax_pytree
+from jax_server.inference.convert import infer_batch_size, to_jax_pytree, to_jsonable
 from jax_server.metrics import Metrics
 
 logger = logging.getLogger("jax_server.runtime")
@@ -184,5 +184,5 @@ class ServedModel:
             "model": self.config.name,
             "backend": resolved_backend,
             "mode": resolved_mode,
-            "outputs": outputs,
+            "outputs": to_jsonable(outputs),
         }
