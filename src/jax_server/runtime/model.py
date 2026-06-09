@@ -182,7 +182,7 @@ class ServedModel:
             handles["latency"].observe(finished_at - compute_start)
             handles["total"].inc()
 
-        logger.debug(
+        logger.info(
             "predict timing model=%s convert_ms=%.3f compute_ms=%.3f serialize_ms=%.3f",
             self.config.name,
             (compute_start - convert_start) * 1000,
