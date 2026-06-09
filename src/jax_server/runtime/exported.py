@@ -54,7 +54,7 @@ def derive_triton_io(exported: Any) -> tuple[dict, dict]:
         raise ValueError(f"outputs are not a dict: {type(out_struct)}")
 
     def _spec(aval):
-        shape = list(aval.shape)
+        shape = [d if isinstance(d, int) else -1 for d in aval.shape]
         if shape:
             shape[0] = -1
         return (np.dtype(aval.dtype), tuple(shape))
