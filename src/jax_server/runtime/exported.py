@@ -28,10 +28,8 @@ class ExportedFunction:
 def derive_triton_io(exported: Any) -> tuple[dict, dict]:
     """Derive Triton Tensor specs from a jax.export.Exported object.
 
-    Returns (inputs_spec, outputs_spec) where each spec is a dict mapping
-    tensor name to (np.dtype, shape). Axis 0 is replaced with -1 (dynamic).
-
-    Does not import pytriton, so this works on macOS/dev machines.
+    Returns (inputs_spec, outputs_spec) mapping tensor name to (np.dtype, shape).
+    Axis 0 is set to -1 (dynamic batch dim). Symbolic non-leading dims become -1.
     """
     import jax
     import numpy as np
@@ -54,10 +52,8 @@ def derive_triton_io(exported: Any) -> tuple[dict, dict]:
         raise ValueError(f"outputs are not a dict: {type(out_struct)}")
 
     def _spec(aval):
-        shape = [d if isinstance(d, int) else -1 for d in aval.shape]
-        if shape:
-            shape[0] = -1
-        return (np.dtype(aval.dtype), tuple(shape))
+        dims = [-1 if (i == 0 or not isinstance(d, int)) else d for i, d in enumerate(aval.shape)]
+        return (np.dtype(aval.dtype), tuple(dims))
 
     return (
         {name: _spec(av) for name, av in inputs_struct.items()},
