@@ -1,4 +1,4 @@
-ARG GIT_REF=0addf13bdd08b59708fe95c02e2d721474df685a
+ARG GIT_REF=0d6fa67a5f0266647af28e78754fa75cee1ecce8
 
 FROM ghcr.io/astral-sh/uv:0.7 AS uv
 
