@@ -18,7 +18,12 @@ spec:
     name: main
     image: 848569320300.dkr.ecr.eu-west-1.amazonaws.com/boba/jax-test:latest
     ports:
-      - containerPort: 8080
+      - containerPort: 8000
+        name: http
+      - containerPort: 8001
+        name: grpc
+      - containerPort: 8002
+        name: metrics
     resources:
       requests:
         cpu: "1"
@@ -57,25 +62,26 @@ spec:
     # HF download + first JAX XLA compile can take several minutes on a cold start.
     livenessProbe:
       httpGet:
-        path: /healthz
-        port: 8080
+        path: /v2/health/live
+        port: 8000
         scheme: HTTP
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
       timeoutSeconds: 5
       failureThreshold: 6
     readinessProbe:
       httpGet:
-        path: /readyz
-        port: 8080
+        path: /v2/health/ready
+        port: 8000
         scheme: HTTP
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
       timeoutSeconds: 5
-      failureThreshold: 12
+      failureThreshold: 3
   podAnnotations:
-    prometheus.io/port: "8080"
+    prometheus.io/port: "8002"
+  # Triton requires /dev/shm for shared memory between its HTTP frontend and the
+  # Python callback. Default 64 MiB is too small; allocate ~2 Gi as an emptyDir.
+  # Note: volumes go on the Deployment spec; r2-d2 may require PVC patching.
   # Inline volume — re-downloads HF artifacts on every pod restart.
   # Replace with a PVC for large models or to avoid repeated downloads.
-  # volumes field goes on the pod spec; r2-d2 passes it through podAnnotations/podLabels only.
-  # Add the volume via a PVC or by patching the Deployment after creation if needed.
