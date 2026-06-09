@@ -47,8 +47,9 @@ def _unified_schema(model: ServedModel) -> tuple[dict, dict]:
 
 
 def _decode_optional(request: Any, name: str) -> str:
-    val = request.get(name)
-    if val is None:
+    try:
+        val = request[name]
+    except (KeyError, IndexError, TypeError):
         return "auto"
     raw = np.asarray(val).flat[0]
     return raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
