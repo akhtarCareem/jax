@@ -1,4 +1,4 @@
-ARG GIT_REF=2b59e715778424f722b5e6aa150bd53682264889
+ARG GIT_REF=main
 
 FROM ghcr.io/astral-sh/uv:0.7 AS uv
 
@@ -15,10 +15,16 @@ RUN git clone https://github.com/akhtarCareem/jax.git /src \
     && git -C /src checkout ${GIT_REF}
 
 RUN uv venv /app/.venv \
-    && uv pip install --python /app/.venv "/src[cuda]"
+    && uv pip install --python /app/.venv "/src[cuda]" nvidia-pytriton
 
 
 FROM python:3.12-slim AS runtime
+
+# nvidia-pytriton bundles tritonserver, which dynamically links libs absent from -slim.
+# Exact list should be confirmed via `ldd` on the bundled tritonserver binary.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libb64-0d libnuma1 libre2-9 libgomp1 libssl3 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --shell /bin/bash app
 
@@ -34,10 +40,13 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 RUN mkdir -p /cache && chown app:app /cache
 
-EXPOSE 8080
+# Triton uses shared memory between its HTTP frontend and the Python callback.
+# For docker run: --shm-size=2g
+# For k8s: mount a medium:Memory emptyDir at /dev/shm (~2Gi).
+EXPOSE 8000 8001 8002
 
 USER app
 
-# Single worker: one GPU per pod — extra workers would each init JAX on the same
-# device and contend for VRAM. uvloop + httptools cut event-loop and HTTP-parse overhead.
-CMD ["uvicorn", "jax_server.deploy.k8s_main:app", "--host", "0.0.0.0", "--port", "8080", "--loop", "uvloop", "--http", "httptools"]
+# Single process: one GPU per pod — concurrent JAX on the same device would contend
+# for VRAM. The infer_fn uses a threading.Lock to serialize GPU access internally.
+CMD ["python", "-m", "jax_server.deploy.triton_main"]

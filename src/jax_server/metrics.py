@@ -8,7 +8,6 @@ from prometheus_client import (
     Histogram,
     generate_latest,
 )
-from starlette.responses import Response
 
 
 class Metrics:
@@ -58,5 +57,6 @@ class Metrics:
             registry=self.registry,
         )
 
-    def prometheus_response(self) -> Response:
+    def prometheus_response(self):
+        from starlette.responses import Response
         return Response(generate_latest(self.registry), media_type=CONTENT_TYPE_LATEST)

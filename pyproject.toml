@@ -5,14 +5,11 @@ description = "JAX model serving runtime for exported artifacts backed by Huggin
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi>=0.115.0",
   "huggingface_hub>=0.30.0",
   "numpy>=1.26.0",
-  "orjson>=3.10.0",
   "prometheus-client>=0.21.0",
   "pydantic>=2.8.0",
   "pyyaml>=6.0.2",
-  "uvicorn[standard]>=0.32.0",
   "dm-haiku>=0.0.13",
   "flatbuffers>=25.0.0",
   "flax>=0.10.0",
@@ -23,16 +20,15 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "httpx>=0.28.0",
   "pytest>=8.3.0",
 ]
 
 [project.optional-dependencies]
-modal = [
-  "modal>=1.1.0",
-]
 cuda = [
   "jax[cuda12]>=0.4.30",
+]
+triton = [
+  "nvidia-pytriton",
 ]
 
 [build-system]

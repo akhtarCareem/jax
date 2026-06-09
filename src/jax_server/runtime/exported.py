@@ -23,3 +23,43 @@ class ExportedFunction:
 
     def call(self, params: Any, inputs: Any) -> Any:
         return self.exported.call(params, inputs)
+
+
+def derive_triton_io(exported: Any) -> tuple[dict, dict]:
+    """Derive Triton Tensor specs from a jax.export.Exported object.
+
+    Returns (inputs_spec, outputs_spec) where each spec is a dict mapping
+    tensor name to (np.dtype, shape). Axis 0 is replaced with -1 (dynamic).
+
+    Does not import pytriton, so this works on macOS/dev machines.
+    """
+    import jax
+    import numpy as np
+
+    args, kwargs = jax.tree_util.tree_unflatten(
+        exported.in_tree, list(exported.in_avals)
+    )
+    if kwargs:
+        raise ValueError(f"Unexpected kwargs in export signature: {list(kwargs)}")
+    if len(args) != 2:
+        raise ValueError(f"Expected (params, inputs); got {len(args)} positional args")
+    _params_struct, inputs_struct = args
+    if not isinstance(inputs_struct, dict):
+        raise ValueError(f"inputs arg is not a dict: {type(inputs_struct)}")
+
+    out_struct = jax.tree_util.tree_unflatten(
+        exported.out_tree, list(exported.out_avals)
+    )
+    if not isinstance(out_struct, dict):
+        raise ValueError(f"outputs are not a dict: {type(out_struct)}")
+
+    def _spec(aval):
+        shape = list(aval.shape)
+        if shape:
+            shape[0] = -1
+        return (np.dtype(aval.dtype), tuple(shape))
+
+    return (
+        {name: _spec(av) for name, av in inputs_struct.items()},
+        {name: _spec(av) for name, av in out_struct.items()},
+    )
