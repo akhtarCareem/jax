@@ -110,7 +110,7 @@ def main() -> None:
                     Tensor(name=n, dtype=dt, shape=sh)
                     for n, (dt, sh) in outputs_spec.items()
                 ],
-                config=ModelConfig(max_batch_size=0),
+                config=ModelConfig(batching=False),
             )
             logger.info(
                 "bound model=%s inputs=%s outputs=%s",
