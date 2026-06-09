@@ -32,6 +32,11 @@ def _to_numpy_tree(value: Any) -> Any:
 
 
 def to_jax_pytree(value: Any) -> Any:
+    if isinstance(value, Mapping) and all(
+        isinstance(leaf, np.ndarray) and leaf.dtype not in (np.float64, np.int64)
+        for leaf in value.values()
+    ):
+        return jax.device_put(dict(value))
     return jax.device_put(_to_numpy_tree(value))
 
 

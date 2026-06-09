@@ -64,7 +64,7 @@ def _make_infer(
     def infer_fn(requests):
         responses = []
         for request in requests:
-            inputs = {name: np.asarray(request[name]) for name in input_names}
+            inputs = {name: request[name] for name in input_names}
             backend = _decode_optional(request, "backend")
             mode = _decode_optional(request, "mode")
             try:
