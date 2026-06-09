@@ -1,4 +1,4 @@
-ARG GIT_REF=main
+ARG GIT_REF=2a7cdce10cb5173dc4c443de18a0d97d809a3be9
 
 FROM ghcr.io/astral-sh/uv:0.7 AS uv
 
@@ -21,9 +21,8 @@ RUN uv venv /app/.venv \
 FROM python:3.12-slim AS runtime
 
 # nvidia-pytriton bundles tritonserver, which dynamically links libs absent from -slim.
-# Exact list should be confirmed via `ldd` on the bundled tritonserver binary.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libb64-0d libnuma1 libre2-9 libgomp1 libssl3 ca-certificates \
+      libnuma1 libgomp1 libssl3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --shell /bin/bash app
