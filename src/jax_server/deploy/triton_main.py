@@ -6,11 +6,12 @@ import threading
 import time
 
 from jax_server.config import load_config
+from jax_server.logging import setup_dynatrace_logging
 from jax_server.runtime.bootstrap import build_models
 from jax_server.runtime.exported import derive_triton_io
 from jax_server.runtime.model import ServedModel
 
-logging.basicConfig(level=logging.INFO)
+setup_dynatrace_logging(level=logging.INFO)
 logger = logging.getLogger("jax_server.deploy")
 
 

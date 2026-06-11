@@ -5,5 +5,6 @@ models:
     params_path: inference_params
     params_format: orbax_standard
     artifact_name: ranker
+    artifact_dir: compiled
     default_platform: cpu
     max_batch_size: 32
